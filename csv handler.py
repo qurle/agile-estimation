@@ -1,8 +1,6 @@
-from statistics import median
-from wsgiref import validate
 import pandas as pd
 import matplotlib.pyplot as plt
-import fitter as f
+import fitter as fit
 import numpy as np
 import scipy.stats as sc
 import datetime
@@ -59,18 +57,19 @@ def plot_scatter(data):
     plt.plot(x, p(x), 'r--')
 
 # Call Fitter to find best fitting density distributions
-def find_distribution(data, project, all_dist, plot):
+def find_distribution(data, project, all_dist = False, plot = False, log = False):
     # checking density functions 
-    fitter = f.Fitter(data['SP Cost'], distributions = f.get_distributions() if all_dist else f.get_common_distributions())
+    fitter = fit.Fitter(data['SP Cost'], distributions = fit.get_distributions() if all_dist else fit.get_common_distributions())
     fitter.fit()
-    density = fitter.get_best(method = 'sumsquare_error')
-    if plot: fitter.summary()
-    return density
+    dist = fitter.get_best(method = 'sumsquare_error')
 
-# Write density info to txt file
-def write_density(project, density):
-    f = open('data/densities.txt', 'a')
-    f.write(project + ' (' + datetime.datetime.now().strftime('%d.%m %H:%M') + '):\n' + str(density))
+    if plot: fitter.summary()
+    if log:
+        f = open('data/densities.txt', 'a', encoding="utf-8")
+        f.write(project + ' (' + datetime.datetime.now().strftime('%d.%m %H:%M') + '):\n' + str(dist))
+        f.close()
+
+    return dist
 
 def show_plot():
     plt.show()
@@ -110,7 +109,7 @@ def generate(data, project, dist, repeats = 10000, log = False):
     mc['Sum'] = mc.sum(axis=1)
 
     if log:
-        f = open('data/generated data.txt', 'a')
+        f = open('data/generated data.txt', 'a', encoding="utf-8")
         f.write(project + ', ' + str(mc.shape[1]-1) + ' datapoints (' + datetime.datetime.now().strftime('%d.%m %H:%M') + '):\n' + str(mc) + '\n\n')
         f.close()
 
@@ -132,10 +131,11 @@ def calc_error(data : pd.DataFrame, m, p, o, log = False):
 
     if log:    
         def r(int): return str(round(int))  # rounded to string
-        f = open('data/generated data.txt', 'a')
+        f = open('data/generated data.txt', 'a', encoding="utf-8")
         f.write('Real: ' + r(real) + '\tEst: ' + r(m) + 
-                '\nError: ' + r(e) + '\tRel Error:' + r(re) + '%\t' '★'*math.floor(100/re) + '☆'+ math.floor(re/20)+
-                '\nRange: [' + r(o) + ' — ' + r(p) + ']\t' + '✔️' if in_range else '❌')
+                '\nError: ' + r(e) + '\tRel Error:' + r(re) + '% \t' + '★' * math.floor(100/re) + '☆' * min(math.floor(re/20), 5)+
+                '\nRange: [' + r(o) + ' — ' + r(p) + ']\t' + ('✔️' if in_range else '❌') + '\n\n')
+        f.close()
 
     return e, in_range
 
@@ -145,7 +145,6 @@ def iterate(all_dist=True):
         print(project)
         training, validation = collect_data(project)
         dens = find_distribution(training, project, all_dist, plot=True)
-        write_density(project, dens)
         save_plot(project)
     
 # Do it for test project
@@ -156,6 +155,6 @@ def test(all_dist=False):
     show_plot()
 
 training, validation = collect_data(test_project)
-dist = find_distribution(training, test_project, False, True)
-mc = generate(validation, test_project, dist, repeats=repeats)
-calc_error(validation, *estimate(mc))
+dist = find_distribution(training, test_project, all_dist = False, plot = False, log = True)
+mc = generate(validation, test_project, dist, repeats, log = True)
+calc_error(validation, *estimate(mc), log = True)
