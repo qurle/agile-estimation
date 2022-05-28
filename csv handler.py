@@ -12,6 +12,8 @@ plt.style.use('seaborn')
 # whole csv data
 csv = u'data\grand dataset.csv'
 df = pd.read_csv(csv, header=0, index_col=False, names = ['Organization', 'Project', 'Issue','Status', 'Assignee', 'Created', 'Resolved', 'SP', 'Time Spent'])
+# log file
+log_file = open('data/output ' + datetime.datetime.now().strftime('%m-%d %H:%M') + '.txt', 'a+', encoding="utf-8")
 # model parameters
 training_amount = .70
 low = .05
@@ -57,6 +59,7 @@ def plot_scatter(data):
     plt.plot(x, p(x), 'r--')
 
 # Call Fitter to find best fitting density distributions
+# Logs project codename, all/common dist, found dist itself and time
 def find_distribution(data, project, all_dist = False, plot = False, log = False):
     # checking density functions 
     fitter = fit.Fitter(data['SP Cost'], distributions = fit.get_distributions() if all_dist else fit.get_common_distributions())
@@ -64,28 +67,12 @@ def find_distribution(data, project, all_dist = False, plot = False, log = False
     dist = fitter.get_best(method = 'sumsquare_error')
 
     if plot: fitter.summary()
-    if log:
-        f = open('data/densities.txt', 'a', encoding="utf-8")
-        f.write(project + ' (' + datetime.datetime.now().strftime('%d.%m %H:%M') + '):\n' + str(dist))
-        f.close()
+    if log: log_file.write(project + ',' + (' all' if all_dist else ' common') + ' (' + datetime.datetime.now().strftime('%d.%m %H:%M') + '):\n' + str(dist) + '\n\n')
 
     return dist
 
-def show_plot():
-    plt.show()
-
-# Save plots as plots/folder../project-suffix.png
-def save_plot(project, folder = '', suffix=''):
-    path = 'plots/'
-    if folder: 
-        path+= folder + '/'
-    path+= project
-    if suffix: 
-        path+= suffix
-    path+='.png'
-    plt.savefig(path, bbox_inches='tight')
-    plt.close()
-
+# Generate dataframe full of possible issue timings
+# Logs datapoints count and dataframe summary 
 def generate(data, project, dist, repeats = 10000, log = False):
     # Making sure our random stays predictable
     np.random.seed(seed=seed)
@@ -108,10 +95,7 @@ def generate(data, project, dist, repeats = 10000, log = False):
     # Caluculating the sum
     mc['Sum'] = mc.sum(axis=1)
 
-    if log:
-        f = open('data/generated data.txt', 'a', encoding="utf-8")
-        f.write(project + ', ' + str(mc.shape[1]-1) + ' datapoints (' + datetime.datetime.now().strftime('%d.%m %H:%M') + '):\n' + str(mc) + '\n\n')
-        f.close()
+    if log: log_file.write(str(mc.shape[1]-1) + ' datapoints:\n' + str(mc) + '\n\n')
 
     return mc
 
@@ -123,6 +107,7 @@ def estimate(data : pd.DataFrame):
     return median, pessimistic, optimistic
 
 # Calculate error
+# Logs info about real value and estimation
 def calc_error(data : pd.DataFrame, m, p, o, log = False):
     real = data['Time Spent'].sum()
     e = m-real
@@ -131,21 +116,40 @@ def calc_error(data : pd.DataFrame, m, p, o, log = False):
 
     if log:    
         def r(int): return str(round(int))  # rounded to string
-        f = open('data/generated data.txt', 'a', encoding="utf-8")
-        f.write('Real: ' + r(real) + '\tEst: ' + r(m) + 
+        log_file.write(
+                'Real: ' + r(real) + '\tEst: ' + r(m) + 
                 '\nError: ' + r(e) + '\tRel Error:' + r(re) + '% \t' + '★' * math.floor(100/re) + '☆' * min(math.floor(re/20), 5)+
-                '\nRange: [' + r(o) + ' — ' + r(p) + ']\t' + ('✔️' if in_range else '❌') + '\n\n')
-        f.close()
+                '\nRange: [' + r(o) + ' — ' + r(p) + ']\t' + ('✔️' if in_range else '❌') + '\n\n'
+                )
 
     return e, in_range
 
+def show_plot():
+    plt.show()
+
+# Save plots as plots/folder../project-suffix.png
+def save_plot(project, folder = '', suffix=''):
+    path = 'plots/'
+    if folder: 
+        path+= folder + '/'
+    path+= project
+    if suffix: 
+        path+= suffix
+    path+='.png'
+    plt.savefig(path, bbox_inches='tight')
+    plt.close()
+
+
 # Like, do it for all projects
-def iterate(all_dist=True):
+def iterate(all_dist=True, log = True):
     for project in df['Project'].unique():
         print(project)
-        training, validation = collect_data(project)
-        dens = find_distribution(training, project, all_dist, plot=True)
-        save_plot(project)
+        training, validation = collect_data(test_project)
+        dist = find_distribution(training, test_project, all_dist = all_dist, plot = True, log = log)
+        mc = generate(validation, test_project, dist, repeats, log = log)
+        calc_error(validation, *estimate(mc), log = log)
+        save_plot(project, folder='28.05',suffix=('hist ' + ('all' if all_dist else 'common')))
+        log_file.close()
     
 # Do it for test project
 def test(all_dist=False):
@@ -154,7 +158,4 @@ def test(all_dist=False):
     plot_scatter(data)
     show_plot()
 
-training, validation = collect_data(test_project)
-dist = find_distribution(training, test_project, all_dist = False, plot = False, log = True)
-mc = generate(validation, test_project, dist, repeats, log = True)
-calc_error(validation, *estimate(mc), log = True)
+iterate(all_dist=True, log=True)
