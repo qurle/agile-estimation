@@ -5,11 +5,10 @@ import numpy as np
 import scipy.stats as sc
 import datetime
 import math
-import warnings
 
 # presets
+plt.switch_backend('agg')
 plt.style.use('seaborn')
-warnings.filterwarnings("ignore")
 
 # whole csv data
 csv = u'data\grand dataset.csv'
@@ -150,7 +149,7 @@ def iterate(all_dist=True, log = True):
         dist = find_distribution(training, project, all_dist = all_dist, plot = True, log = log)
         mc = generate(validation, project, dist, repeats, log = log)
         calc_error(validation, *estimate(mc), log = log)
-        save_plot(project, folder='28.05',suffix=('hist ' + ('all' if all_dist else 'common')))
+        save_plot(project, folder='28.05',suffix=(' hist ' + ('all' if all_dist else 'common')))
     log_file.close()
     
 # Do it for test project
