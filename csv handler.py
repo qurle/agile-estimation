@@ -5,15 +5,17 @@ import numpy as np
 import scipy.stats as sc
 import datetime
 import math
+import warnings
 
 # presets
 plt.style.use('seaborn')
+warnings.filterwarnings("ignore")
 
 # whole csv data
 csv = u'data\grand dataset.csv'
 df = pd.read_csv(csv, header=0, index_col=False, names = ['Organization', 'Project', 'Issue','Status', 'Assignee', 'Created', 'Resolved', 'SP', 'Time Spent'])
 # log file
-log_file = open('data/output ' + datetime.datetime.now().strftime('%m-%d %H:%M') + '.txt', 'a+', encoding="utf-8")
+log_file = open('data/output ' + datetime.datetime.now().strftime('%m-%d %H%M') + '.txt', 'a+', encoding="utf-8")
 # model parameters
 training_amount = .70
 low = .05
@@ -144,12 +146,12 @@ def save_plot(project, folder = '', suffix=''):
 def iterate(all_dist=True, log = True):
     for project in df['Project'].unique():
         print(project)
-        training, validation = collect_data(test_project)
-        dist = find_distribution(training, test_project, all_dist = all_dist, plot = True, log = log)
-        mc = generate(validation, test_project, dist, repeats, log = log)
+        training, validation = collect_data(project)
+        dist = find_distribution(training, project, all_dist = all_dist, plot = True, log = log)
+        mc = generate(validation, project, dist, repeats, log = log)
         calc_error(validation, *estimate(mc), log = log)
         save_plot(project, folder='28.05',suffix=('hist ' + ('all' if all_dist else 'common')))
-        log_file.close()
+    log_file.close()
     
 # Do it for test project
 def test(all_dist=False):
