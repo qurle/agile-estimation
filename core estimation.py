@@ -18,18 +18,17 @@ plt.style.use('seaborn')
 
 # output files
 log_file = open('core/log ' + datetime.datetime.now().strftime('%m-%d %H%M') + '.txt', 'a+', encoding="utf-8")
-plot_file= 'core/plot ' + datetime.datetime.now().strftime('%m-%d %H%M') + '.txt'
-# array for results (see calc_error())
-result = []
+plot_file= 'core/plot ' + datetime.datetime.now().strftime('%m-%d %H%M') + '.png'
 # model parameters
 low = .05
 high = .95
 repeats = 10000
 seed = 123
 log = True
-plot = False
+plot = True
 all_dist = True
-found_dist = {'dweibull': {'c': 0.7043874950842102, 'loc': 17999.999999999996, 'scale': 8597.164557339034}}
+found_dist = False
+# found_dist = {'dweibull': {'c': 0.7043874950842102, 'loc': 17999.999999999996, 'scale': 8597.164557339034}}
 # resource in man-hours per week (for example)
 resource = 200
 
@@ -127,10 +126,7 @@ def estimate(data : pd.DataFrame):
                                             + '\tT' + str(round(high*100)) + ': ' + str(pessimistic))
 
     return median, pessimistic, optimistic
-
-def show_plot():
-    plt.show()
-
+   
 # Save plots
 def save_plot(path):
     plt.savefig(path, bbox_inches='tight')
@@ -144,7 +140,6 @@ def main():
     mc = generate(new, dist, repeats)
     estimation = estimate(mc)
     log_file.close()
-    result_df = pd.DataFrame(result)
-    result_df.to_csv('data/results ' + datetime.datetime.now().strftime('%m-%d %H%M') + '.csv', index=False, encoding="utf_8_sig")
+    if plot: save_plot(plot_file)
     
 main()
