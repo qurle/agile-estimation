@@ -20,6 +20,7 @@ plt.style.use('seaborn')
 log_file = open('core/log ' + datetime.datetime.now().strftime('%m-%d %H%M') + '.txt', 'a+', encoding="utf-8")
 plot_file= 'core/plot ' + datetime.datetime.now().strftime('%m-%d %H%M') + '.png'
 # model parameters
+columns = ['Issue', 'SP', 'Time Spent']
 low = .05
 high = .95
 repeats = 10000
@@ -27,18 +28,17 @@ seed = 123
 log = True
 plot = True
 all_dist = True
-found_dist = False
-# found_dist = {'dweibull': {'c': 0.7043874950842102, 'loc': 17999.999999999996, 'scale': 8597.164557339034}}
+found_dist = {'dweibull': {'c': 0.7043874950842102, 'loc': 17999.999999999996, 'scale': 8597.164557339034}}
 # resource in man-hours per week (for example)
 resource = 200
 
 # Open files, remove unnecessary data, count SP cost
 def collect_data():
     # open file with training data:
-    print('Select training data. It should be CSV file with [Issue], [SP] and [Time Spent] columns')
+    print('Select training data. It should be CSV file with [' + columns[0]+ '], [' + columns[1]  + '] and [' + columns[2]+ '] columns')
     hist_file = fd.askopenfilename(title = "Select training data file",filetypes = (("CSV Files","*.csv"),),initialdir ='.')
     # create dataframe
-    hist = pd.read_csv(hist_file, header=0, index_col='Issue')
+    hist = pd.read_csv(hist_file, header=0, usecols = columns, index_col=columns[0])
     
     # logging and printing stuff
     if log: 
@@ -56,10 +56,10 @@ def collect_data():
     hist['SP Cost'] = hist['Time Spent'] / hist['SP'] 
     
     # open file with new data:
-    print('Select new data. It should be CSV file with [Issue] and [SP] columns')
+    print('Select new data. It should be CSV file with [' + columns[0]+ '], [' + columns[1]  + '] columns')
     new_file = fd.askopenfilename(title = "Select new data file",filetypes = (("CSV Files","*.csv"),),initialdir ='.')
     # create dataframe
-    new = pd.read_csv(new_file, header=0, index_col='Issue')
+    new = pd.read_csv(new_file, header=0, usecols = columns[:1], index_col=columns[0])
 
     return hist, new
 
@@ -116,29 +116,41 @@ def generate(data, dist, repeats = 10000):
     return mc
 
 # Estimate in terms of low, median and high scores
-def estimate(data : pd.DataFrame):
-    optimistic = data['Sum'].quantile(low)
-    median = data['Sum'].quantile(.5)
-    pessimistic = data['Sum'].quantile(high)
+def est_effort(data: pd.DataFrame):
+    eff_m = data['Sum'].quantile(.5)
+    eff_o = data['Sum'].quantile(low)
+    eff_p = data['Sum'].quantile(high)
 
-    if log: log_file.write('Estimation results:\nT' + str(round(low*100)) + ': ' + str(optimistic) 
-                                            + '\tT50: ' + str(median)
-                                            + '\tT' + str(round(high*100)) + ': ' + str(pessimistic))
+    if log: log_file.write('Estimation results:\nT50' + str(eff_m) +  
+                                            + '\nT' + str(round(low*100)) + ': ' + str(eff_o)
+                                            + '\nT' + str(round(high*100)) + ': ' + str(eff_p))
 
-    return median, pessimistic, optimistic
+    return eff_m, eff_p, eff_o
    
+def dur_time(eff_m, eff_p, eff_o):
+    # Since effort is calculated as man-seconds
+    resource_sec = resource*60
+    dur_o = eff_o/resource_sec
+    dur_m = eff_m/resource_sec
+    dur_p = eff_p/resource_sec
+
+    if log: log_file.write('Duration results:\nD50' + str(dur_m) +  
+                                            + '\nD' + str(round(low*100)) + ': ' + str(round(dur_o, 2))
+                                            + '\nD' + str(round(high*100)) + ': ' + str(round(dur_p, 2)))
+
+    return dur_m, dur_p, dur_o
+
 # Save plots
 def save_plot(path):
     plt.savefig(path, bbox_inches='tight')
     plt.close()
 
 
-# Like, do it for all projects
 def main():
     hist, new = collect_data()
     dist = found_dist if found_dist else find_distribution(hist)
     mc = generate(new, dist, repeats)
-    estimation = estimate(mc)
+    estimation = est_effort(mc)
     log_file.close()
     if plot: save_plot(plot_file)
     
