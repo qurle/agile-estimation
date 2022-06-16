@@ -4,10 +4,6 @@ import fitter as fit
 import numpy as np
 import scipy.stats as sc
 import datetime
-import math
-
-from tkinter import ttk
-import tkinter as tk
 from tkinter import filedialog as fd
 
 
@@ -28,7 +24,7 @@ seed = 123
 log = True
 plot = True
 all_dist = True
-found_dist = {'dweibull': {'c': 0.7043874950842102, 'loc': 17999.999999999996, 'scale': 8597.164557339034}}
+found_dist = False
 # resource in man-hours per week (for example)
 resource = 200
 
