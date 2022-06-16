@@ -1,0 +1,17 @@
+Hist data file: X:/Programming Projects/agile-estimation/core/hist.csv
+             SP  Time Spent
+Issue                      
+TEIID-5835  1.0        3600
+TEIID-5886  0.5       10800
+TEIID-5611  0.5        9000
+TEIID-5955  0.1        3600
+TEIID-5948  0.5        9000
+...         ...         ...
+TEIID-5928  1.0       45000
+TEIID-5892  0.1         300
+TEIID-5963  0.5        5400
+TEIID-5919  0.5        9000
+TEIID-5912  0.5        9000
+
+[85 rows x 2 columns]
+

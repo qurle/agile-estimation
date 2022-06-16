@@ -1,4 +1,3 @@
-from ctypes import resize
 import pandas as pd
 import matplotlib.pyplot as plt
 import fitter as fit
@@ -36,14 +35,14 @@ def collect_data(project):
     data.set_index('Issue', inplace=True)
 
     # when we have 0 SP issues and don't wanna infinity
-    if (data['SP'] ==0).any():
-        data['SP']= data['SP'] + 1
+    if (data['SP'] == 0).any():
+        data['SP'] = data['SP'] + 1
 
     # adding calculated column of 1 SP cost
     data['SP Cost'] = data['Time Spent'] / data['SP'] 
 
     # splitting to training and validation dataset
-    training = data.sample(frac=training_amount, random_state=seed)
+    training = data.sample(frac = training_amount, random_state = seed)
     validation = data.drop(training.index)
 
     print('There are ' + str(training.shape[0]) + ' datapoints in training dataset')
